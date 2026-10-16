@@ -72,13 +72,13 @@ try{
   await page.getByRole('button',{name:'보존할 음악',exact:true}).waitFor();
   assert.equal(await application.evaluate(({app})=>app.getVersion()),fixtureVersion);
   assert.equal(await page.evaluate(async()=> (await window.luma.getUpdateState()).mode),'automatic');
-  const bytes=await readFile(archive),name=path.basename(archive),releases='https://github.com/contentriumkorea/SONO/releases';
+  const bytes=await readFile(archive),name=path.basename(archive),releases=`https://github.com/contentriumkorea/${legacy?'SONO':'MusicBoard'}/releases`;
   const release={tag_name:`v${version}`,draft:false,prerelease:false,html_url:`${releases}/tag/v${version}`,
     assets:[{name:`${legacy?'SONO':'MusicBoard'}-${version}-mac-universal.dmg`},{name,browser_download_url:`${releases}/download/v${version}/${name}`,size:bytes.length,digest:`sha256:${createHash('sha256').update(bytes).digest('hex')}`}]};
   await application.evaluate(({net},{release,archive})=>{
     const original=net.fetch.bind(net),fs=process.getBuiltinModule('fs'),{Readable}=process.getBuiltinModule('stream');
     net.fetch=async(url,init)=>{
-      if(url==='https://api.github.com/repos/contentriumkorea/SONO/releases/latest')return new Response(JSON.stringify(release));
+      if(url===release.html_url.split('/tag/')[0].replace('https://github.com/','https://api.github.com/repos/')+'/latest')return new Response(JSON.stringify(release));
       if(url===release.assets[1].browser_download_url)return new Response(Readable.toWeb(fs.createReadStream(archive)));
       return original(url,init);
     };
@@ -104,7 +104,8 @@ try{
   assert.deepEqual(saved.playlists,state.playlists);assert.equal(saved.settings.volume,0.43);assert.equal(saved.settings.fadeOut,1.2);
   assert.equal(saved.playback.repeat,'stop');assert.ok(Math.abs(saved.playback.position-4.1)<0.2);await access(audio);
   assert.equal((await exec('/usr/bin/plutil',['-extract','CFBundleDisplayName','raw','-o','-',plist])).stdout.trim(),'MusicBoard');
-  assert.equal(JSON.parse(asar.extractFile(asarPath,'package.json').toString()).productName,'MusicBoard');
+  const installedPackage=JSON.parse(asar.extractFile(asarPath,'package.json').toString());
+  assert.equal(installedPackage.productName,'MusicBoard');assert.equal(installedPackage.build.publish.repo,'MusicBoard');
   console.log((legacy?'PASS genuine published SONO 0.1.9 to MusicBoard migration: ':'PASS MusicBoard packaged automatic update: ')+'one UI click, streamed ZIP, SHA-256, bundle verification, old app exit, actual app replacement, new app restart/health, backup cleanup and library/settings preservation (release HTTP supplied locally)');
 }catch(error){
   if(page&&!page.isClosed()){await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/mac-update-failure.png'}).catch(()=>{});}

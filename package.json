@@ -1,7 +1,7 @@
 {
   "name": "sono",
   "productName": "MusicBoard",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "private": true,
   "type": "module",
   "description": "MusicBoard: a local music player for macOS and Windows",
@@ -44,7 +44,7 @@
     "publish": {
       "provider": "github",
       "owner": "contentriumkorea",
-      "repo": "SONO",
+      "repo": "MusicBoard",
       "releaseType": "release"
     },
     "directories": {

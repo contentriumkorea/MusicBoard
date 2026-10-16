@@ -14,6 +14,11 @@ try{
   const page=await application.firstWindow();page.setDefaultTimeout(15000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.getByRole('heading',{name:'내 음악.'}).waitFor();
+  assert.equal((await page.evaluate(()=>window.luma.getUpdateState())).releasesUrl,'https://github.com/contentriumkorea/MusicBoard/releases');
+  if(packaged){
+    const config=await application.evaluate(()=>process.getBuiltinModule('fs').readFileSync(process.resourcesPath+'/app-update.yml','utf8'));
+    assert.match(config,/repo: MusicBoard\b/);
+  }
   if(packaged){
     await application.evaluate(async({app})=>{
       const {createRequire}=process.getBuiltinModule('node:module');const require=createRequire(app.getAppPath()+'/package.json');
@@ -24,7 +29,7 @@ try{
     });
   }else{
     await application.evaluate(({net,shell})=>{
-      net.fetch=async()=>{await new Promise(r=>setTimeout(r,200));return new Response(JSON.stringify({tag_name:'v0.2.0',draft:false,prerelease:false,html_url:'https://github.com/contentriumkorea/SONO/releases/tag/v0.2.0',assets:[{name:'SONO-0.2.0-windows-x64-setup.exe'},{name:'SONO-0.2.0-mac-universal.dmg'}]}),{status:200});};
+      net.fetch=async url=>{if(url!=='https://api.github.com/repos/contentriumkorea/MusicBoard/releases/latest')throw Error('Unexpected update source');await new Promise(r=>setTimeout(r,200));return new Response(JSON.stringify({tag_name:'v0.2.0',draft:false,prerelease:false,html_url:'https://github.com/contentriumkorea/MusicBoard/releases/tag/v0.2.0',assets:[{name:'MusicBoard-0.2.0-windows-x64-setup.exe'},{name:'MusicBoard-0.2.0-mac-universal.dmg'}]}),{status:200});};
       shell.openExternal=async url=>{globalThis.sonoOpenedRelease=url;};
     });
   }
@@ -42,7 +47,7 @@ try{
     for(let i=0;i<50&&!await application.evaluate(()=>globalThis.sonoInstalled);i++)await new Promise(r=>setTimeout(r,100));
     assert.equal(await application.evaluate(()=>globalThis.sonoInstalled),true);
   }else{
-    assert.equal(await application.evaluate(()=>globalThis.sonoOpenedRelease),'https://github.com/contentriumkorea/SONO/releases');
+    assert.equal(await application.evaluate(()=>globalThis.sonoOpenedRelease),'https://github.com/contentriumkorea/MusicBoard/releases');
   }
   await mkdir('test-results',{recursive:true});await page.screenshot({path:`test-results/update-${packaged?'packaged':'dev'}.png`});
   await page.getByRole('button',{name:'닫기',exact:true}).click();
