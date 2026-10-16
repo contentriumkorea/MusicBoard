@@ -9,10 +9,10 @@
     "name": "Contentrium",
     "url": "https://github.com/contentriumkorea"
   },
-  "homepage": "https://github.com/contentriumkorea/SONO",
+  "homepage": "https://github.com/contentriumkorea/MusicBoard",
   "repository": {
     "type": "git",
-    "url": "https://github.com/contentriumkorea/SONO.git"
+    "url": "https://github.com/contentriumkorea/MusicBoard.git"
   },
   "main": "dist-electron/main.mjs",
   "scripts": {

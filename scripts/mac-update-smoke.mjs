@@ -32,9 +32,9 @@ try{
   await mkdir(path.dirname(target),{recursive:true});await mkdir(data);
   if(legacy){
     const headers=process.env.GH_TOKEN?{Authorization:`Bearer ${process.env.GH_TOKEN}`}:{ };
-    const response=await fetch('https://api.github.com/repos/contentriumkorea/SONO/releases/tags/v0.1.9',{headers});assert.equal(response.ok,true,`Old release metadata HTTP ${response.status}`);
+    const response=await fetch('https://api.github.com/repos/contentriumkorea/MusicBoard/releases/tags/v0.1.9',{headers});assert.equal(response.ok,true,`Old release metadata HTTP ${response.status}`);
     const release=await response.json(),asset=release.assets.find(a=>a.name==='SONO-0.1.9-mac-universal.zip');assert.ok(asset);
-    assert.equal(asset.browser_download_url,'https://github.com/contentriumkorea/SONO/releases/download/v0.1.9/SONO-0.1.9-mac-universal.zip');assert.match(asset.digest,/^sha256:[a-f\d]{64}$/);
+    assert.equal(asset.browser_download_url,'https://github.com/contentriumkorea/MusicBoard/releases/download/v0.1.9/SONO-0.1.9-mac-universal.zip');assert.match(asset.digest,/^sha256:[a-f\d]{64}$/);
     const downloaded=await fetch(asset.browser_download_url);assert.equal(downloaded.ok,true);const bytes=Buffer.from(await downloaded.arrayBuffer());assert.equal(bytes.length,asset.size);assert.equal(createHash('sha256').update(bytes).digest('hex'),asset.digest.slice(7));
     const zip=path.join(dir,'old.zip');await writeFile(zip,bytes);const listing=(await exec('/usr/bin/unzip',['-Z1',zip],{maxBuffer:8*1024**2})).stdout;
     assert.ok(listing.split('\n').filter(Boolean).every(e=>/^(SONO\.app\/|__MACOSX\/)/.test(e)&&!e.includes('\\')&&!e.split('/').includes('..')));

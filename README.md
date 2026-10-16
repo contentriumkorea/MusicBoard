@@ -68,7 +68,7 @@ MP3, WAV, FLAC, M4A/AAC, OGG/Opus, AIFF 파일을 가져오도록 구성했습�
 
 GitHub Releases에서 Windows 설치 파일과 Mac 공용 설치 파일을 배포합니다. 왼쪽 아래 업데이트 버튼으로 새 버전을 확인합니다. Windows·Mac 설치 버전은 ‘지금 업데이트’ 한 번으로 다운로드·앱 교체·재실행합니다. Mac 0.1.2 이하에서는 0.1.3으로 최초 한 번 직접 교체한 뒤 이후 자동 업데이트를 사용합니다. 음악 재생은 로컬 파일을 사용하며 업데이트 확인 시에만 GitHub에 연결합니다.
 
-[설치 파일](https://github.com/contentriumkorea/SONO/releases/latest) · [배포와 업데이트 안내](docs/배포와 업데이트.md)
+[설치 파일](https://github.com/contentriumkorea/MusicBoard/releases/latest) · [배포와 업데이트 안내](docs/배포와 업데이트.md)
 
 ## 로컬 패키징
 
