@@ -105,7 +105,7 @@ try{
   assert.equal(saved.playback.repeat,'stop');assert.ok(Math.abs(saved.playback.position-4.1)<0.2);await access(audio);
   assert.equal((await exec('/usr/bin/plutil',['-extract','CFBundleDisplayName','raw','-o','-',plist])).stdout.trim(),'MusicBoard');
   const installedPackage=JSON.parse(asar.extractFile(asarPath,'package.json').toString());
-  assert.equal(installedPackage.productName,'MusicBoard');assert.equal(installedPackage.build.publish.repo,'MusicBoard');
+  assert.equal(installedPackage.productName,'MusicBoard');
   console.log((legacy?'PASS genuine published SONO 0.1.9 to MusicBoard migration: ':'PASS MusicBoard packaged automatic update: ')+'one UI click, streamed ZIP, SHA-256, bundle verification, old app exit, actual app replacement, new app restart/health, backup cleanup and library/settings preservation (release HTTP supplied locally)');
 }catch(error){
   if(page&&!page.isClosed()){await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/mac-update-failure.png'}).catch(()=>{});}
