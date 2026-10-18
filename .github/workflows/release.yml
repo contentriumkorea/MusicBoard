@@ -3,7 +3,7 @@ name: MusicBoard
 on:
   push:
     branches: ['main']
-    paths: ['package.json']
+    paths: ['package.json', 'scripts/mac-update-smoke.mjs', '.github/workflows/release.yml']
     tags: ['v*']
   workflow_dispatch:
 
