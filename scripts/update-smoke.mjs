@@ -34,7 +34,7 @@ try{
     });
   }
   await page.getByRole('button',{name:'업데이트',exact:true}).click();
-  await page.getByRole('heading',{name:'MusicBoard 업데이트'}).waitFor();
+  await page.getByRole('heading',{name:'PulseDeck 업데이트'}).waitFor();
   const version=await application.evaluate(({app})=>app.getVersion());
   assert.ok((await page.locator('.update-version').first().textContent()).includes(`v${version}`));
   await page.getByRole('button',{name:'업데이트 확인 중'}).waitFor();
