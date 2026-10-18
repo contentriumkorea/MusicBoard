@@ -16,6 +16,6 @@ export function UpdatePanel({state,onChange}:{state:UpdateState|null;onChange:(s
       {state?.status==='downloaded'&&<button className="button primary full" onClick={()=>run(()=>window.luma.installUpdate())}><RotateCcw size={16}/>재시작하여 설치</button>}
       <button className="button secondary full" disabled={!state||busy||state.status==='downloaded'} onClick={()=>run(()=>window.luma.checkForUpdates())}><RefreshCw size={16} className={state?.status==='checking'?'update-spinning':''}/>{state?.status==='checking'?'업데이트 확인 중':'업데이트 확인'}</button>
     </div>
-    <p className="hint">{state?.mode==='manual'?'개발 실행에서는 설치 파일 페이지를 엽니다. 설치된 MusicBoard 앱은 앱 안에서 업데이트합니다.':'지금 업데이트를 누르면 다운로드 후 설정을 저장하고 앱을 교체해 재실행합니다.'}</p>
+    <p className="hint">{state?.mode==='manual'?'개발 실행에서는 설치 파일 페이지를 엽니다. 설치된 PulseDeck 앱은 앱 안에서 업데이트합니다.':'지금 업데이트를 누르면 다운로드 후 설정을 저장하고 앱을 교체해 재실행합니다.'}</p>
   </div>;
 }
