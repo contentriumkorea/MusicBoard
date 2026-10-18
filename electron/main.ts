@@ -24,7 +24,7 @@ else {
   mkdirSync(dataDirectory,{recursive:true});
   app.setPath('userData',dataDirectory);
 }
-app.setName('MusicBoard');
+app.setName('PulseDeck');
 protocol.registerSchemesAsPrivileged([{scheme:'luma',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true,corsEnabled:true}}]);
 let mainWindow:BrowserWindow|null=null;let miniWindow:BrowserWindow|null=null;let state:AppState=emptyState();let warning:string|undefined;let busy=false;let pendingSave=Promise.resolve();
 let live:LiveState={track:null,playing:false,position:0,duration:0,volume:0.7};
@@ -50,7 +50,7 @@ const updates=createUpdateService({
   version:app.getVersion(),releasesUrl,
   updater:macUpdater||(app.isPackaged&&process.platform==='win32'?updaterPackage.autoUpdater:undefined),
   readRelease:async()=>{
-    const response=await net.fetch(`https://api.github.com/repos/${packageInfo.build.publish.owner}/${packageInfo.build.publish.repo}/releases/latest`,{headers:{Accept:'application/vnd.github+json','User-Agent':'MusicBoard'},signal:AbortSignal.timeout(15000)});
+    const response=await net.fetch(`https://api.github.com/repos/${packageInfo.build.publish.owner}/${packageInfo.build.publish.repo}/releases/latest`,{headers:{Accept:'application/vnd.github+json','User-Agent':'PulseDeck'},signal:AbortSignal.timeout(15000)});
     if(!response.ok)throw new Error('릴리스를 확인하지 못했습니다.');
     return readRelease(await response.json(),process.platform,releasesUrl);
   },
@@ -73,7 +73,7 @@ function protect(win:BrowserWindow){
 }
 function createMain(){
   allowMainClose=false;
-  mainWindow=new BrowserWindow({width:1320,height:880,minWidth:960,minHeight:650,show:false,title:'MusicBoard',icon:path.join(root,'resources','icon.png'),backgroundColor:'#171717',frame:process.platform==='darwin',titleBarStyle:process.platform==='darwin'?'hiddenInset':undefined,webPreferences:{preload:path.join(root,'dist-electron','preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,autoplayPolicy:'no-user-gesture-required'}});
+  mainWindow=new BrowserWindow({width:1320,height:880,minWidth:960,minHeight:650,show:false,title:'PulseDeck',icon:path.join(root,'resources','icon.png'),backgroundColor:'#171717',frame:process.platform==='darwin',titleBarStyle:process.platform==='darwin'?'hiddenInset':undefined,webPreferences:{preload:path.join(root,'dist-electron','preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,autoplayPolicy:'no-user-gesture-required'}});
   protect(mainWindow);mainWindow.once('ready-to-show',()=>{mainWindow?.show();if(updateToken)void writeFile(path.join(updateCache,updateToken,'health'),app.getVersion(),{mode:0o600}).catch(()=>{});});mainWindow.on('closed',()=>{mainWindow=null;miniWindow?.close();});
   mainWindow.on('close',event=>{if(allowMainClose)return;event.preventDefault();void flushBeforeExit().finally(()=>{allowMainClose=true;mainWindow?.close();});});
   mainWindow.loadURL(urlFor());
@@ -108,7 +108,7 @@ app.whenReady().then(async()=>{
   if(await repairMp4Metadata(state.tracks)){
     try{await persist();}catch{warning='음원 정보를 갱신했지만 저장하지 못했습니다.';}
   }
-  if(rollbackToken)warning='새 버전 실행에 실패해 이전 MusicBoard 앱으로 복구했습니다. 보관함과 설정은 유지됩니다.';
+  if(rollbackToken)warning='새 버전 실행에 실패해 이전 PulseDeck 앱으로 복구했습니다. 보관함과 설정은 유지됩니다.';
   protocol.handle('luma',async(request)=>{
     const url=new URL(request.url);
     if(url.hostname==='audio'){
@@ -196,7 +196,7 @@ app.whenReady().then(async()=>{
   ipcMain.on('state:flushed',event=>{if(trusted(event)&&event.sender===mainWindow?.webContents)finishRendererFlush?.();});
   ipcMain.on('player:command',(event,command:string)=>{if(trusted(event)&&['toggle','next','previous'].includes(command))mainWindow?.webContents.send('player:command',command);});
   ipcMain.on('window:action',(event,action:string)=>{if(!trusted(event))return;const win=BrowserWindow.fromWebContents(event.sender);if(action==='minimize')win?.minimize();if(action==='close')win?.close();if(action==='maximize'){if(win?.isMaximized())win.unmaximize();else win?.maximize();}});
-  Menu.setApplicationMenu(process.platform==='darwin'?Menu.buildFromTemplate([{label:'MusicBoard',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'quit'}]},{label:'편집',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]}]):null);
+  Menu.setApplicationMenu(process.platform==='darwin'?Menu.buildFromTemplate([{label:'PulseDeck',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'quit'}]},{label:'편집',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]}]):null);
   createMain();app.on('activate',()=>{if(!mainWindow)createMain();});
 });
 app.on('before-quit',event=>{if(allowQuit)return;event.preventDefault();void flushBeforeExit().finally(()=>{allowQuit=true;allowMainClose=true;app.quit();});});
