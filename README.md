@@ -1,6 +1,12 @@
-# MusicBoard
+# PulseDeck
 
-개인용 로컬 음악 플레이어. macOS와 Windows를 위한 Electron 앱입니다.
+![PulseDeck 커버](docs/pulsedeck-cover.svg)
+
+내 음악 파일을 한곳에서 듣고 정리하는 로컬 플레이어입니다. Windows와 macOS에서 사용합니다. 기존 MusicBoard의 새 표시 이름이며 보관함과 설정은 그대로 이어집니다.
+
+**[설치 파일 다운로드](https://github.com/contentriumkorea/MusicBoard/releases/latest)** · [Windows·Mac 업데이트 안내](docs/배포와 업데이트.md)
+
+Windows는 `MusicBoard-…-windows-x64-setup.exe`를, Mac은 `MusicBoard-…-mac-universal.dmg`를 받으세요. 설치 파일명은 기존 업데이트와의 호환성을 위해 유지합니다.
 
 ## 실행
 
@@ -79,3 +85,5 @@ pnpm release:mac
 ```
 
 GitHub Actions는 Windows NSIS 설치 파일과 Mac 공용 DMG/ZIP을 빌드합니다. macOS는 ad-hoc 서명을 사용하는 시험 배포이며 Developer ID 서명·공증은 아직 구성하지 않았습니다. Mac 자동 업데이트는 파일 검증과 실패 시 복구를 포함합니다. 상세 절차는 배포와 업데이트 안내를 확인하세요.
+
+[![CONTENTRIUM 홈페이지](https://img.shields.io/badge/CONTENTRIUM-홈페이지-181818?style=for-the-badge)](https://contentrium.com/)
