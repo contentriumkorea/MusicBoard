@@ -39,15 +39,15 @@ export async function extractMacBundle(zip:string,destination:string,version:str
   await mkdir(destination,{recursive:true});await exec('/usr/bin/ditto',['-x','-k',zip,destination]);
   const bundle=path.join(destination,[...roots][0]),plist=path.join(bundle,'Contents','Info.plist');
   const field=async(key:string)=>(await exec('/usr/bin/plutil',['-extract',key,'raw','-o','-',plist])).stdout.trim();
-  if(await field('CFBundleIdentifier')!=='local.luma.music'||await field('CFBundleShortVersionString')!==version||await field('CFBundleExecutable')!=='SONO')throw new Error('MusicBoard 업데이트 앱을 확인하지 못했습니다.');
+  if(await field('CFBundleIdentifier')!=='local.luma.music'||await field('CFBundleShortVersionString')!==version||await field('CFBundleExecutable')!=='SONO')throw new Error('PulseDeck 업데이트 앱을 확인하지 못했습니다.');
   await exec('/usr/bin/codesign',['--verify','--deep','--strict',bundle]);return bundle;
 }
 export async function prepareMacInstall(request:MacInstall):Promise<void>{
   const {workspace,token,version,helperPath,pid,stagedBundle}=request;
   const target=await realpath(request.bundlePath);
-  if(!target.endsWith('.app')||target.includes('/AppTranslocation/')||target.startsWith('/Volumes/'))throw new Error('MusicBoard를 응용프로그램 폴더로 옮긴 뒤 업데이트해주세요.');
+  if(!target.endsWith('.app')||target.includes('/AppTranslocation/')||target.startsWith('/Volumes/'))throw new Error('PulseDeck을 응용프로그램 폴더로 옮긴 뒤 업데이트해주세요.');
   try{await access(path.dirname(target),constants.W_OK);await access(target,constants.W_OK);}
-  catch{throw new Error('앱 폴더에 쓰기 권한이 없습니다. 사용자 응용프로그램 폴더로 MusicBoard를 옮겨주세요.');}
+  catch{throw new Error('앱 폴더에 쓰기 권한이 없습니다. 사용자 응용프로그램 폴더로 PulseDeck을 옮겨주세요.');}
   const candidate=`${target}.sono-update-${token}.app`,helper=path.join(workspace,'install.sh'),health=path.join(workspace,'health');
   let created=false,started=false;
   try{
