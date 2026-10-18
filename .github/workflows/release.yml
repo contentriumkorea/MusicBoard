@@ -124,5 +124,5 @@ jobs:
             echo "Release already exists. Increase package.json version to publish an update."
             exit 1
           fi
-          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --title "MusicBoard ${version}" --notes-file docs/release-notes.md installers/*
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --title "PulseDeck ${version}" --notes-file docs/release-notes.md installers/*
           gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest
