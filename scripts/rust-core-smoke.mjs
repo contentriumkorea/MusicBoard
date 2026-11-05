@@ -26,7 +26,7 @@ export async function fixture(){
 export async function cleanFixture(dir){const actual=path.resolve(dir),base=path.resolve(await realpath(tmpdir()));assert.ok(actual.startsWith(base+path.sep)&&path.basename(actual).startsWith('musicboard-native-'));await rm(actual,{recursive:true,force:true});}
 
 async function main(){
-  const f=await fixture(),exe=process.env.MUSICBOARD_CORE_EXECUTABLE||path.resolve(`src-tauri/target/debug/musicboard-core${process.platform==='win32'?'.exe':''}`);let core=coreClient(exe,f.data);
+  const f=await fixture(),exe=process.env.MUSICBOARD_CORE_EXECUTABLE||path.resolve(process.platform==='win32'?'release/native-unpacked/SONO.exe':'release/mac-universal/PulseDeck.app/Contents/MacOS/SONO');let core=coreClient(exe,f.data);
   try{
     const imported=await core.call('music:paths',{paths:[f.folder]});assert.equal(imported.added,3);assert.equal(imported.state.tracks.length,3);assert.deepEqual(imported.folderRoots,[f.folder]);assert.equal((await core.call('music:paths',{paths:f.files})).added,0);
     const a=imported.state.tracks.find(t=>t.path===f.files[0]);assert.ok(a);assert.ok(Math.abs(a.duration-12)<.01);assert.equal(a.id,createHash('sha256').update(process.platform==='win32'?f.files[0].toLowerCase():f.files[0]).digest('hex'));

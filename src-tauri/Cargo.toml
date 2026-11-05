@@ -15,10 +15,6 @@ name = "SONO"
 path = "src/main.rs"
 required-features = ["desktop"]
 
-[[bin]]
-name = "musicboard-core"
-path = "src/core_main.rs"
-
 [features]
 default = ["desktop"]
 desktop = ["dep:tauri", "dep:rfd"]
