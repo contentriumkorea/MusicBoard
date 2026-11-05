@@ -22,7 +22,10 @@ pub fn data_directory() -> PathBuf {
 
 impl Core {
     pub fn new(directory: PathBuf, helper: PathBuf) -> Result<Arc<Self>, String> {
-        let (state, warning) = library::read_state(&directory);
+        let (mut state, mut warning) = library::read_state(&directory);
+        if library::repair_mp4_metadata(&mut state) && library::write_state(&directory,&state).is_err() {
+            warning=Some("음원 정보를 갱신했지만 저장하지 못했습니다.".into());
+        }
         let state = Arc::new(Mutex::new(state));
         let media_base = media::start(state.clone(), directory.join("artwork"))?;
         let updater = updates::Updater::new(directory.clone(), env!("CARGO_PKG_VERSION"), helper);

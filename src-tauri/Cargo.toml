@@ -5,6 +5,7 @@ edition = "2021"
 description = "MusicBoard native desktop core"
 license = "MIT"
 build = "build.rs"
+default-run = "SONO"
 
 [lib]
 name = "musicboard_native"
@@ -22,6 +23,7 @@ path = "src/core_main.rs"
 [features]
 default = ["desktop"]
 desktop = ["dep:tauri", "dep:rfd"]
+custom-protocol = ["tauri/custom-protocol"]
 
 [dependencies]
 tauri = { version = "2", optional = true, features = [] }

@@ -23,6 +23,7 @@ export interface UpdateState {
   mode:'automatic'|'manual';releasesUrl:string;message:string;latestVersion?:string;percent?:number;
 }
 export interface Bridge {
+  mediaUrl?(kind:'audio'|'art',id:string):string;
   getWaveform(id:string):Promise<WaveformInfo>;
   saveWaveform(id:string,key:string,peaks:number[]):Promise<void>;
   getUpdateState():Promise<UpdateState>;

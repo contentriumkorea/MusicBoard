@@ -25,3 +25,38 @@ jobs:
         run: cargo test --manifest-path src-tauri/Cargo.toml --no-default-features
       - name: Build headless native core
         run: cargo build --manifest-path src-tauri/Cargo.toml --no-default-features --bin musicboard-core
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-lock-${{ matrix.os }}
+          path: src-tauri/Cargo.lock
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm typecheck
+      - name: Build native desktop
+        run: pnpm dlx @tauri-apps/cli@2 build --no-bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-desktop-${{ matrix.os }}
+          path: |
+            src-tauri/target/release/SONO.exe
+            src-tauri/target/release/SONO
+            src-tauri/Cargo.lock

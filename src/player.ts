@@ -1,4 +1,5 @@
 import { EQ_FREQUENCIES } from './shared/library';
+import { audioUrl } from './shared/media';
 import type { Settings,Track } from './shared/types';
 import { trimBounds } from './shared/trim';
 import { MIN_LOOP_SECONDS,sanitizeLoop } from './shared/loop';
@@ -56,7 +57,7 @@ export class AudioPlayer {
     this.trim=trim;this.rangeEnded=false;this.stopEndTimer();
     this.transitionTimer=null;this.pendingLoad=null;
     if(this.metadataCallback)this.audio.removeEventListener('loadedmetadata',this.metadataCallback);
-    this.audio.pause();this.audio.src=`luma://audio/${id}`;
+    this.audio.pause();this.audio.src=audioUrl(id);
     this.metadataCallback=()=>{this.metadataCallback=null;this.seek(position);if(autoplay)void this.play();};
     this.audio.addEventListener('loadedmetadata',this.metadataCallback,{once:true});
     this.audio.load();

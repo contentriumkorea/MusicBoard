@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PulseDeck",
+  "version": "0.2.0",
+  "identifier": "local.luma.music",
+  "mainBinaryName": "SONO",
+  "build": {"frontendDist":"../dist","devUrl":"http://127.0.0.1:5173","beforeBuildCommand":"node scripts/build-ui.mjs"},
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [{"label":"main","title":"PulseDeck","width":1320,"height":880,"minWidth":960,"minHeight":650,"visible":false,"decorations":false,"dragDropEnabled":true,"backgroundColor":"#171717"}],
+    "security": {"csp":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http://127.0.0.1:*; media-src 'self' blob: http://127.0.0.1:*; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:*; object-src 'none'; frame-src 'none'","capabilities":["desktop"]}
+  },
+  "bundle": {
+    "active":true,"targets":["app"],"icon":["../resources/icon.png","../resources/icon.ico","../resources/icon.icns"],
+    "resources":{"../resources/mac-update.sh":"resources/mac-update.sh","../resources/THIRD_PARTY_NOTICES.md":"resources/THIRD_PARTY_NOTICES.md","../resources/licenses/":"resources/licenses/"},
+    "macOS":{"signingIdentity":"-","minimumSystemVersion":"11.0","infoPlist":"Info.plist"}
+  }
+}

@@ -127,29 +127,38 @@ pub fn merge_state(existing: &Value, incoming: &Value) -> Value {
 pub fn read_state(dir: &Path) -> (Value,Option<String>) {
     let file=dir.join("state.json");
     let parse=|file: &Path| -> Result<Value,String> {serde_json::from_slice(&fs::read(file).map_err(|e|e.to_string())?).map_err(|e|e.to_string())};
-    let (mut state,warning)=match parse(&file) {
+    match parse(&file) {
         Ok(state)=>(sanitize_state(&state),None),
         Err(_) => match parse(&dir.join("state.json.bak")) {
             Ok(state)=>(sanitize_state(&state),Some("저장 파일을 읽을 수 없어 이전 상태를 복구했습니다.".to_owned())),
             Err(_) if !file.exists() => (empty_state(),None),
             Err(_) => (empty_state(),Some("저장 파일을 읽을 수 없습니다. 기존 파일은 보존했습니다.".to_owned())),
         }
-    };
-    // Repair the old extension-based MP4 import bug without touching any UI edits.
-    if let Some(tracks)=state["tracks"].as_array_mut() {
+    }
+}
+
+/// Repair the old extension-based MP4 import bug without touching identities or
+/// user edits. The caller decides when to persist a successfully repaired state.
+pub fn repair_mp4_metadata(state: &mut Value) -> bool {
+    let mut changed=false;
+    if let Some(tracks)=state.get_mut("tracks").and_then(Value::as_array_mut) {
         for track in tracks {
             if track["format"]=="M4A" {continue;}
             let Some(path)=track["path"].as_str().map(PathBuf::from) else {continue};
             if !has_mp4_header(&path) {continue;}
             if let Ok(metadata)=read_track(&path,None) {
-                if metadata["duration"].as_f64().unwrap_or(0.0)>0.0 {
-                    for key in ["duration","format","sampleRate","bitrate"] {track[key]=metadata[key].clone();}
+                if metadata["duration"].as_f64().is_some_and(|duration|duration.is_finite() && duration>0.0) {
+                    for key in ["duration","format","sampleRate","bitrate"] {
+                        if let Some(value)=metadata.get(key) {track[key]=value.clone();}
+                        else if let Some(object)=track.as_object_mut() {object.remove(key);}
+                    }
                     clean_trim(track);
+                    changed=true;
                 }
             }
         }
     }
-    (state,warning)
+    changed
 }
 
 /// Write and sync a sibling temporary file before replacement. Never replace the
@@ -357,5 +366,33 @@ mod tests {
         let result=import_paths(storage.path(),&mut state,&[source.path().to_string_lossy().into_owned()],&mut |n,total,_|calls.push((n,total))).unwrap();
         assert_eq!(result["added"],2); assert_eq!(result["errors"].as_array().unwrap().len(),1); assert_eq!(state["tracks"][0]["title"],"a"); assert_eq!(calls.len(),3);
         let result=import_paths(storage.path(),&mut state,&[source.path().to_string_lossy().into_owned()],&mut |_,_,_|{}).unwrap(); assert_eq!(result["added"],0); assert_eq!(state["tracks"].as_array().unwrap().len(),2);
+    }
+    #[test]
+    fn mp4_repair_preserves_inaccessible_invalid_and_non_mp4_sources() {
+        let dir=tempfile::tempdir().unwrap();
+        let pcm=dir.path().join("pcm-disguised.mp3");
+        crate::waveform::tests::write_wav(&pcm,&[[12,-12];960]);
+        let broken=dir.path().join("broken.mp3");
+        fs::write(&broken,b"\x00\x00\x00\x18ftypM4A ").unwrap();
+        let original_pcm=fs::read(&pcm).unwrap();
+        let original_broken=fs::read(&broken).unwrap();
+        let mut state=empty_state();
+        state["tracks"]=json!([track("offline"),track("pcm"),track("broken")]);
+        for (index,path) in [dir.path().join("offline.mp3"),pcm.clone(),broken.clone()].iter().enumerate() {
+            state["tracks"][index]["path"]=json!(path.to_string_lossy());
+            state["tracks"][index]["format"]=json!("MP3");
+            state["tracks"][index]["favorite"]=json!(true);
+            state["tracks"][index]["displayName"]=json!("edited title");
+            state["tracks"][index]["folderId"]=json!("custom-folder");
+            state["tracks"][index]["trim"]=json!({"start":2,"end":8});
+        }
+        state["playlists"]=json!([{"id":"p","name":"p","trackIds":["offline","pcm","broken"]}]);
+        state["settings"]["future"]=json!({"keep":true});
+        let before=state.clone();
+        assert!(!repair_mp4_metadata(&mut state));
+        assert_eq!(state,before);
+        assert_eq!(fs::read(&pcm).unwrap(),original_pcm);
+        assert_eq!(fs::read(&broken).unwrap(),original_broken);
+        assert!(!dir.path().join("artwork").exists());
     }
 }
