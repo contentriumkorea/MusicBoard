@@ -21,6 +21,7 @@ const oldVersion = '0.1.11', version = '0.2.0', maxArchive = 2 * 1024 ** 3;
 const f = await fixture(), installDir = path.join(f.dir, 'Applications', 'MusicBoard');
 const executable = path.join(installDir, 'SONO.exe'), resultFile = path.join(f.data, 'native-result.json');
 const env = { ...f.env }; delete env.ELECTRON_RUN_AS_NODE; delete env.LUMA_DEV_URL;
+delete env.PSModulePath;
 const exists = file => access(file).then(() => true, () => false);
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 let core, baselineRegistration, nativeUi, installationAttempted = false, uiLogs = '';
@@ -145,7 +146,7 @@ try {
   const registered = installationAttempted ? await registrations() : [];
   if (registered.length) {
     for (const item of registered) assert.equal(path.resolve(item.location || '').toLowerCase(), installDir.toLowerCase(), 'Refuse to uninstall anything outside the fixture');
-    const uninstaller = (await readdir(installDir)).find(name => /^Uninstall MusicBoard\.exe$/i.test(name));
+    const uninstaller = (await readdir(installDir)).find(name => /^Uninstall (?:SONO|MusicBoard)\.exe$/i.test(name));
     assert.ok(uninstaller, 'Fixture uninstaller must exist');
     await run(path.join(installDir, uninstaller), ['/S', `_?=${installDir}`]);
     await eventually(async () => assert.deepEqual(await registrations(), [], 'Fixture uninstaller must remove its registration'), 60000);

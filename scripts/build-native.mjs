@@ -83,9 +83,13 @@ async function webviewPrerequisite(work) {
     size += bytes.length; if (size > 20 * 1024 ** 2) return callback(Error('WebView2 bootstrapper is unexpectedly large')); callback(null, bytes);
   } }), createWriteStream(bootstrapper, { flags: 'wx' }));
   assert.ok(size > 0);
+  const verificationEnv = { ...process.env, MUSICBOARD_WEBVIEW2_VERIFY_FILE: bootstrapper };
+  // Windows PowerShell must initialize its own module path. A parent PowerShell
+  // 7 path otherwise makes it load an incompatible Security module.
+  delete verificationEnv.PSModulePath;
   await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
     '$ErrorActionPreference="Stop"; $signature=Get-AuthenticodeSignature -LiteralPath $env:MUSICBOARD_WEBVIEW2_VERIFY_FILE; if($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notmatch "(^|,[ ]*)O=Microsoft Corporation(,|$)"){throw "WebView2 bootstrapper Microsoft signature verification failed"}'],
-  { env: { ...process.env, MUSICBOARD_WEBVIEW2_VERIFY_FILE: bootstrapper } });
+  { env: verificationEnv });
   const include = path.join(work, 'webview2.nsh');
   await writeFile(include, [
     '; Generated native prerequisite; the existing NSIS identity/install mode remains unchanged.',

@@ -10,9 +10,9 @@ Windows는 `MusicBoard-…-windows-x64-setup.exe`를, Mac은 `MusicBoard-…-mac
 
 ## 실행
 
-Windows에서 `MusicBoard 실행.cmd`를 더블클릭합니다. 개발용 실행에는 Node.js와 설치된 프로젝트 의존성이 필요합니다. 이 작업 환경의 실행 파일은 `release/win-unpacked/SONO.exe`에 생성됩니다.
+설치 후 앱을 실행합니다. Windows에서 WebView2 Runtime이 없으면 설치기가 Microsoft 공식 런타임을 설치하므로 이때 인터넷 연결이 필요합니다. 일반 설치·사용에는 개발 도구가 필요하지 않습니다.
 
-개발 환경에서는 다음 명령을 사용합니다.
+소스 개발에는 Node.js·pnpm·Rust가 필요합니다. Windows는 MSVC C++ 빌드 도구와 WebView2, Mac은 Xcode 명령줄 도구를 사용합니다. 개발 환경에서는 다음 명령을 사용합니다.
 
 ```sh
 pnpm install
@@ -22,9 +22,11 @@ pnpm dev
 제품용 코드 빌드 및 실행:
 
 ```sh
-pnpm build
+pnpm build:native
 pnpm start
 ```
+
+Windows 네이티브 실행 파일은 `release/native-unpacked/SONO.exe`, Mac 앱은 `release/mac-universal/PulseDeck.app`에 생성됩니다. 프로젝트의 `MusicBoard 실행.cmd`도 네이티브 빌드를 실행합니다. `pnpm build`는 화면 코드만 빌드하며 설치 앱 생성과 구분합니다.
 
 ## 사용법
 
@@ -44,7 +46,7 @@ pnpm start
 - 재생목록의 더 보기 메뉴로 곡 순서를 바꿀 수 있습니다. 목록 순서 정렬에서만 활성화됩니다.
 - 음악 추가 메뉴에서 M3U 목록을 가져오고, 재생목록 상단의 내려받기 버튼으로 내보냅니다.
 - 곡의 더 보기 또는 재생바의 가위 버튼에서 **음원 길이 조정**을 열 수 있습니다. 시작·종료 시간, 슬라이더, 현재 위치 버튼으로 지정한 구간만 재생하며 구간 끝에서 자동 넘김·한 곡 반복·정지가 적용됩니다. 목록/재생바 길이와 파형도 구간 기준으로 표시합니다. 설정은 재실행 후 유지되고 **원래 길이**로 복원할 수 있습니다. 음원 원본을 변경하거나 새 오디오 파일을 저장하는 기능은 아닙니다.
-- 재생바는 실제 음원의 파형을 흰색·회색으로 표시합니다. 클릭·드래그·방향키로 탐색할 수 있고 분석 결과는 자동 저장합니다. 원본 파일 변경 시 다시 분석합니다. PCM WAV와 MP3·FLAC·M4A/AAC 등 지원 코덱은 파일을 나누어 분석하므로 긴 파일도 파형이 표시됩니다. 분석 중에는 진행률과 지금까지 읽은 파형이 표시되고, 곡을 바꾸면 분석을 취소합니다. 스트리밍 디코딩을 지원하지 않는 형식은 짧은 파일에 한해 Web Audio 호환 경로를 사용하며, 디코딩 불가능한 파일은 기본 재생바를 유지합니다.
+- 재생바는 실제 음원의 파형을 흰색·회색으로 표시합니다. 클릭·드래그·방향키로 탐색할 수 있고 분석 결과는 자동 저장합니다. 원본 파일 변경 시 다시 분석합니다. PCM WAV와 MP3·FLAC·M4A/AAC 등 지원 코덱은 파일을 나누어 분석하므로 긴 파일도 파형이 표시됩니다. 분석하는 동안 로딩을 표시합니다. 네이티브 분석이 지원하지 않는 형식에는 화면의 호환 분석 경로를 사용하며, 디코딩 불가능한 파일은 기본 재생바를 유지합니다.
 - 하단 EQ 버튼에서 20밴드 EQ와 프리앰프를 조절합니다. 사용자 조절값은 자동 저장됩니다.
 - 상단의 작은 창 버튼으로 미니 플레이어를 엽니다. 본 창과 같은 재생 엔진을 제어합니다.
 - 하단 타이머에서 15·30·45·60·90분 뒤 재생을 멈추도록 설정합니다. 타이머는 앱 실행 동안만 유지됩니다.
@@ -58,13 +60,14 @@ pnpm start
 pnpm test
 pnpm typecheck
 pnpm build
-node scripts/smoke.mjs
-node scripts/drop-smoke.mjs
-node scripts/organize-smoke.mjs
-node scripts/playback-smoke.mjs
+cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
+# 네이티브 빌드 후 MUSICBOARD_CORE_EXECUTABLE / MUSICBOARD_NATIVE_EXECUTABLE 지정
+node scripts/rust-core-smoke.mjs
+node scripts/rust-codec-smoke.mjs
+node scripts/native-desktop-smoke.mjs
 ```
 
-통합 검증은 임시 데이터 폴더와 프로그램으로 만든 WAV 파일을 사용합니다. 실제 보관함에 예시 음악을 넣지 않습니다. 스크린샷과 검증 로그는 `test-results`에 생성합니다.
+통합 검증은 임시 데이터 폴더와 합성 음원을 사용합니다. 실제 보관함에 예시 음악을 넣지 않습니다. 네이티브 화면 검증은 전용 CI에서 수행하며, 기존 Electron 검증 스크립트는 이전 버전 비교용으로 보존합니다. 검증 로그는 `test-results`에 생성합니다.
 
 ## 플랫폼과 현재 범위
 

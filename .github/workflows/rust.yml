@@ -7,7 +7,7 @@ permissions:
   contents: read
 concurrency:
   group: rust-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   native:
     uses: ./.github/workflows/native-build.yml
