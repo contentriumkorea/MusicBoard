@@ -1,107 +1,18 @@
-name: MusicBoard
-
+name: PulseDeck
 on:
   push:
     branches: ['main']
-    paths: ['package.json', 'scripts/mac-update-smoke.mjs', '.github/workflows/release.yml']
+    paths: ['package.json', '.github/workflows/release.yml']
     tags: ['v*']
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: sono-release-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows
-            command: release:win
-            executable: release/win-unpacked/SONO.exe
-          - os: macos-14
-            platform: mac
-            command: release:mac
-            executable: release/mac-universal/MusicBoard.app/Contents/MacOS/SONO
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.25.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-      - name: Validate release version
-        shell: bash
-        run: |
-          node --input-type=module -e 'import fs from "node:fs"; const {version}=JSON.parse(fs.readFileSync("package.json","utf8")); if(!/^\d+\.\d+\.\d+$/.test(version))throw Error("Stable version required"); if(process.env.GITHUB_REF_TYPE==="tag"&&process.env.GITHUB_REF_NAME!==`v${version}`)throw Error("Tag must match package.json");'
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
-      - run: pnpm typecheck
-      - name: Build installer
-        run: pnpm ${{ matrix.command }}
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - name: Verify player interactions
-        run: pnpm verify:interactions
-      - name: Verify packaged Windows update button
-        if: matrix.platform == 'windows'
-        run: pnpm verify:update
-        env:
-          SONO_SMOKE_EXECUTABLE: ${{ github.workspace }}/release/win-unpacked/SONO.exe
-      - name: Verify packaged imports and waveform
-        run: pnpm verify:features
-        env:
-          SONO_SMOKE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
-      - name: Verify packaged long audio waveform
-        run: pnpm verify:waveform
-        env:
-          SONO_SMOKE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
-      - name: Verify packaged audio range editing
-        run: pnpm verify:trim
-        env:
-          SONO_SMOKE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
-      - name: Verify packaged waveform recovery and fade input
-        run: pnpm verify:waveform-fade
-        env:
-          SONO_SMOKE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
-      - name: Verify packaged mislabeled audio repair
-        run: pnpm verify:mislabeled-audio
-        env:
-          SONO_SMOKE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
-      - name: Verify packaged A-B section repeat
-        run: pnpm verify:loop
-        env:
-          SONO_SMOKE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
-      - name: Verify packaged MusicBoard branding and data compatibility
-        run: pnpm verify:branding
-        env:
-          SONO_SMOKE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
-      - name: Verify packaged Mac app replacement
-        if: matrix.platform == 'mac'
-        run: pnpm verify:mac-update
-      - name: Verify genuine SONO to MusicBoard Mac migration
-        if: matrix.platform == 'mac'
-        run: pnpm verify:legacy-mac-update
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sono-${{ matrix.platform }}
-          if-no-files-found: error
-          path: |
-            release/*.exe
-            release/*.dmg
-            release/*.zip
-            release/*.blockmap
-            release/latest*.yml
+    uses: ./.github/workflows/native-build.yml
   publish:
     needs: build
     runs-on: ubuntu-latest
@@ -111,9 +22,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
+          pattern: native-installers-*
           path: installers
           merge-multiple: true
-      - name: Publish complete release
+      - name: Validate release assets
+        run: node scripts/verify-native-assets.mjs installers
+      - name: Publish checked release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

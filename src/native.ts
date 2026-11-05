@@ -117,7 +117,7 @@ export async function createNativeBridge(api:NativeApi,info:ShellInfo):Promise<{
   const imported=(value:ImportResult):ImportResult=>({...value,state:state(value.state)});
   const live=(value:LiveState,toNative=false):LiveState=>({...value,track:value.track?track(value.track,toNative):null});
   const progress=subscriptions<Progress>(),updates=subscriptions<UpdateState>(),lives=subscriptions<LiveState>(),commands=subscriptions<PlayerCommand>(),flushes=subscriptions<void>();
-  let pendingFlush:{resolve:()=>void;reject:(reason:Error)=>void;timer:ReturnType<typeof setTimeout>}|undefined;
+  let pendingFlush:{resolve:()=>void;reject:(reason:Error)=>void;timer:ReturnType<typeof setTimeout>;error?:Error}|undefined;
   const flush=()=>{
     if(!flushes.size)return Promise.resolve();
     if(pendingFlush)return Promise.reject(new Error('설정을 저장하는 중입니다. 잠시 후 다시 시도해주세요.'));
@@ -138,7 +138,7 @@ export async function createNativeBridge(api:NativeApi,info:ShellInfo):Promise<{
     installUpdate:async()=>{try{await flush();}catch(error){const current=await invoke<UpdateState>('update:get');return {...current,status:'error',message:error instanceof Error?error.message:String(error)};}return update('update:install');},
     onUpdate:updates.add,
     getState:async()=>{const result=await invoke<{state:AppState;warning?:string}>('state:get');return {...result,state:state(result.state)};},
-    saveState:value=>invoke('state:save',{state:state(value,true)}),removeMusic:async ids=>state(await invoke('music:remove',{ids})),
+    saveState:async value=>{try{await invoke('state:save',{state:state(value,true)});}catch(error){if(pendingFlush)pendingFlush.error=error instanceof Error?error:new Error(String(error));throw error;}},removeMusic:async ids=>state(await invoke('music:remove',{ids})),
     importMusic:async mode=>imported(await invoke('music:import',{mode})),
     importDroppedFiles:async files=>{const paths=files.map(file=>droppedPaths.get(file)).filter((path):path is string=>!!path);
       if(!paths.length)throw new Error('컴퓨터에 저장된 음악 파일이나 폴더를 놓아주세요.');return imported(await invoke('music:paths',{paths}));},
@@ -148,7 +148,10 @@ export async function createNativeBridge(api:NativeApi,info:ShellInfo):Promise<{
     playerCommand:command=>{void invoke('player:command',{command}).catch(()=>{});},
     onLive:callback=>{const stop=lives.add(callback);void invoke('player:request').catch(()=>{});return stop;},
     onCommand:commands.add,onProgress:progress.add,onFlush:flushes.add,
-    flushDone:()=>{void invoke('lifecycle:flushed').then(()=>{if(pendingFlush){clearTimeout(pendingFlush.timer);pendingFlush.resolve();pendingFlush=undefined;}}).catch(error=>{if(pendingFlush){clearTimeout(pendingFlush.timer);pendingFlush.reject(error);pendingFlush=undefined;}});},
+    flushDone:()=>{
+      if(pendingFlush?.error){const pending=pendingFlush;pendingFlush=undefined;clearTimeout(pending.timer);pending.reject(pending.error!);return;}
+      void invoke('lifecycle:flushed').then(()=>{if(pendingFlush){clearTimeout(pendingFlush.timer);pendingFlush.resolve();pendingFlush=undefined;}}).catch(error=>{if(pendingFlush){clearTimeout(pendingFlush.timer);pendingFlush.reject(error);pendingFlush=undefined;}});
+    },
     windowAction:action=>{void invoke('window:action',{action}).catch(()=>{});}
   };
   const stops:(()=>void)[]=[];

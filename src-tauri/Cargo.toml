@@ -3,7 +3,6 @@ name = "musicboard-native"
 version = "0.2.0"
 edition = "2021"
 description = "MusicBoard native desktop core"
-license = "MIT"
 build = "build.rs"
 default-run = "SONO"
 

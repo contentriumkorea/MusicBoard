@@ -6,7 +6,10 @@ import {coreClient,fixture,cleanFixture} from './rust-core-smoke.mjs';
 const executable=process.env.MUSICBOARD_NATIVE_EXECUTABLE||path.resolve(`src-tauri/target/release/SONO${process.platform==='win32'?'.exe':''}`),f=await fixture();
 let core,child,logs='';
 try{
-  core=coreClient(executable,f.data);await core.call('music:paths',{paths:[f.folder]});await core.close();core=undefined;
+  core=coreClient(executable,f.data);const imported=await core.call('music:paths',{paths:[f.folder]});
+  imported.state.folders=[{id:'native-group-one',name:'Native group one'},{id:'native-group-two',name:'Native group two'}];
+  imported.state.tracks.forEach((track,index)=>{track.folderId=index===2?'native-group-two':'native-group-one';});
+  imported.state.settings.librarySort='manual';await core.call('state:save',{state:imported.state});await core.close();core=undefined;
   child=spawn(executable,[],{env:f.env,windowsHide:true,stdio:['ignore','pipe','pipe']});child.stdout.on('data',d=>{logs+=d.toString();});child.stderr.on('data',d=>{logs+=d.toString();});
   const deadline=Date.now()+150000,resultFile=path.join(f.data,'native-result.json');let result;
   while(Date.now()<deadline){try{await access(resultFile);result=JSON.parse(await readFile(resultFile,'utf8'));break;}catch{}if(child.exitCode!=null)throw Error(`Native app exited ${child.exitCode}: ${logs.slice(-5000)}`);await new Promise(r=>setTimeout(r,100));}

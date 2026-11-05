@@ -42,6 +42,12 @@ async function main(){
     await core.close();core=coreClient(exe,f.data);const restarted=(await core.call('state:get')).state;assert.deepEqual(restarted.playlists,state.playlists);assert.equal(restarted.settings.fadeOut,1.2);assert.deepEqual((await core.call('waveform:get',{id:a.id})).peaks,wave.peaks);assert.deepEqual(await readFile(f.files[0]),f.bytes);
     await core.call('music:remove',{ids:[a.id]});const removed=(await core.call('state:get')).state;assert.equal(removed.tracks.length,2);assert.equal(removed.playlists[0].trackIds.length,0);assert.deepEqual(await readFile(f.files[0]),f.bytes);
     console.log('PASS Rust update channel, restart/cache persistence and selected deletion without changing source audio');
+    const m3u=path.join(f.dir,'reversed.m3u8');await writeFile(m3u,`#EXTM3U\n${f.files[1]}\n${f.files[0]}\n${f.files[1]}\n`);
+    const playlistImport=await core.call('playlist:paths',{path:m3u}),playlist=playlistImport.state.playlists.at(-1);
+    const names=playlist.trackIds.map(id=>playlistImport.state.tracks.find(track=>track.id===id).title);assert.deepEqual(names,['B','A']);
+    const exported=path.join(f.dir,'exported.m3u8');await core.call('playlist:export',{id:playlist.id,path:exported});
+    assert.deepEqual((await readFile(exported,'utf8')).split('\n').filter(line=>line&&!line.startsWith('#')),[f.files[1],f.files[0]]);
+    console.log('PASS M3U import/export retains explicit song order and deduplicates repeated entries');
   }finally{await core.close().catch(()=>{});await cleanFixture(f.dir);}
 }
 if(import.meta.url===new URL(process.argv[1], 'file:').href||process.argv[1]?.endsWith('rust-core-smoke.mjs'))await main();

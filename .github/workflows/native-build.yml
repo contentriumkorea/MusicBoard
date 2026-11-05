@@ -1,0 +1,97 @@
+name: Native build and migration checks
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Verify Rust services
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --no-default-features
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            executable: release/native-unpacked/SONO.exe
+          - os: macos-14
+            platform: mac
+            executable: release/mac-universal/PulseDeck.app/Contents/MacOS/SONO
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Add universal Mac targets
+        if: runner.os == 'macOS'
+        run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm typecheck
+      - name: Build native app and compatible installers
+        run: node scripts/build-native.mjs
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Verify native file, store and streaming services
+        run: node scripts/rust-core-smoke.mjs
+        env:
+          MUSICBOARD_CORE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
+      - name: Verify real compressed codecs and long waveform
+        run: node scripts/rust-codec-smoke.mjs
+        env:
+          MUSICBOARD_CORE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
+      - name: Verify actual native playback and interactions
+        run: node scripts/native-desktop-smoke.mjs
+        env:
+          MUSICBOARD_NATIVE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
+      - name: Verify published Electron Mac to native update
+        if: runner.os == 'macOS'
+        run: node scripts/rust-upgrade-smoke.mjs
+        env:
+          MUSICBOARD_NATIVE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
+          GH_TOKEN: ${{ github.token }}
+      - name: Verify existing Windows installation upgrades to native
+        if: runner.os == 'Windows'
+        run: node scripts/rust-windows-upgrade-smoke.mjs
+        env:
+          MUSICBOARD_NATIVE_EXECUTABLE: ${{ github.workspace }}/${{ matrix.executable }}
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-installers-${{ matrix.platform }}
+          if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.blockmap
+            release/latest*.yml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-desktop-${{ matrix.platform }}
+          path: |
+            release/native-unpacked/SONO.exe
+            release/mac-universal/PulseDeck.app/Contents/MacOS/SONO

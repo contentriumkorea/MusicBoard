@@ -74,6 +74,16 @@ it('returns a retryable update error after reading native updater state',async()
   expect(await bridge.downloadUpdate()).toMatchObject({status:'error',message:'Network unavailable'});
   expect(invoke).toHaveBeenLastCalledWith('native',{method:'update:get',args:{}});
 });
+it('blocks installation when the frontend acknowledges a failed final save and permits a retry',async()=>{
+  const {bridge,invoke}=await setup();let fail=true;
+  invoke.mockImplementation(async(_command,args)=>{if(args?.method==='state:save'&&fail)throw new Error('Disk full');if(String(args?.method).startsWith('update:'))return update;});
+  bridge.onFlush(()=>{void bridge.saveState(makeState()).catch(()=>{}).finally(()=>bridge.flushDone());});
+  expect(await bridge.installUpdate()).toMatchObject({status:'error',message:'Disk full'});
+  expect(invoke.mock.calls.some(call=>call[1]?.method==='update:install')).toBe(false);
+  expect(invoke.mock.calls.some(call=>call[1]?.method==='lifecycle:flushed')).toBe(false);
+  fail=false;await bridge.installUpdate();
+  expect(invoke.mock.calls.some(call=>call[1]?.method==='update:install')).toBe(true);
+});
 it('routes OS paths through zero-byte File proxies and CSS drop coordinates',async()=>{
   const {bridge,invoke}=await setup();const row=document.createElement('div');row.dataset.trackId='song';document.body.append(row);
   vi.spyOn(document,'elementFromPoint').mockReturnValue(row);vi.spyOn(window,'devicePixelRatio','get').mockReturnValue(2);

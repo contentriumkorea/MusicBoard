@@ -288,6 +288,9 @@ pub fn import_paths(dir: &Path, state: &mut Value, paths: &[String], progress: &
         scan(input,root.as_deref(),&mut seen,&mut files,&mut errors);
     }
     files.sort_by(|a,b|a.0.cmp(&b.0));
+    if files.is_empty() && errors.is_empty() {
+        return Err("가져올 수 있는 음악 파일이 없습니다. 음악 파일이나 음악이 담긴 폴더를 놓아주세요.".into());
+    }
     let mut next=sanitize_state(state); let tracks=next["tracks"].as_array_mut().unwrap();
     let mut indexes:HashMap<String,usize>=tracks.iter().enumerate().map(|(i,t)|(t["id"].as_str().unwrap().to_owned(),i)).collect();
     let mut added=0; let mut track_ids=Vec::new();
@@ -310,6 +313,20 @@ pub fn import_paths(dir: &Path, state: &mut Value, paths: &[String], progress: &
     // Commit the in-memory snapshot only after a successful disk write.
     write_state(dir,&next)?; *state=next;
     Ok(json!({"state":state,"added":added,"errors":errors,"folderRoots":roots,"trackIds":track_ids}))
+}
+
+/// M3U order is independent of the sorted file scan used for library imports.
+/// Resolve aliases to imported source identities and retain each track once.
+pub fn ordered_track_ids(state: &Value, paths: &[String]) -> Vec<String> {
+    let by_path:HashMap<String,String>=array(&state["tracks"]).iter().filter_map(|track| {
+        Some((path_key(Path::new(track["path"].as_str()?)),track["id"].as_str()?.to_owned()))
+    }).collect();
+    let mut seen=HashSet::new();
+    paths.iter().filter_map(|path| {
+        let resolved=real_path(Path::new(path)).ok()?;
+        let id=by_path.get(&path_key(&resolved))?;
+        if seen.insert(id.clone()) {Some(id.clone())} else {None}
+    }).collect()
 }
 
 pub fn parse_m3u(content: &str, file: &Path) -> Vec<String> {
@@ -356,6 +373,23 @@ mod tests {
         let dir=tempfile::tempdir().unwrap(); let uri=url::Url::from_file_path(dir.path().join("a b.wav")).unwrap();
         let result=parse_m3u(&format!("\u{feff}#EXTM3U\r\n#comment\nhttps://example.test/a.mp3\nsub/../relative.wav\n{uri}"),&dir.path().join("list.m3u"));
         assert_eq!(result.len(),2); assert_eq!(Path::new(&result[0]),dir.path().join("relative.wav")); assert_eq!(Path::new(&result[1]),dir.path().join("a b.wav"));
+    }
+    #[test]
+    fn playlist_track_ids_preserve_explicit_order_and_skip_missing_sources() {
+        let dir=tempfile::tempdir().unwrap();
+        let a=dir.path().join("A.wav");let b=dir.path().join("B.wav");
+        fs::write(&a,b"path identity fixture").unwrap();fs::write(&b,b"path identity fixture").unwrap();
+        let mut state=empty_state();state["tracks"]=json!([track("a"),track("b")]);
+        state["tracks"][0]["path"]=json!(real_path(&a).unwrap().to_string_lossy());
+        state["tracks"][1]["path"]=json!(real_path(&b).unwrap().to_string_lossy());
+        let paths=[b.clone(),dir.path().join("missing.wav"),a,b].map(|p|p.to_string_lossy().into_owned());
+        assert_eq!(ordered_track_ids(&state,&paths),vec!["b","a"]);
+    }
+    #[test]
+    fn empty_folder_import_reports_error_without_mutating_or_writing_state() {
+        let source=tempfile::tempdir().unwrap();let storage=tempfile::tempdir().unwrap();let mut state=empty_state();let before=state.clone();
+        let error=import_paths(storage.path(),&mut state,&[source.path().to_string_lossy().into_owned()],&mut |_,_,_|panic!("empty scan has no progress")).unwrap_err();
+        assert!(error.contains("가져올 수 있는 음악 파일이 없습니다"));assert_eq!(state,before);assert!(!storage.path().join("state.json").exists());
     }
     #[test]
     fn folder_import_is_sorted_skips_hidden_and_deduplicates() {

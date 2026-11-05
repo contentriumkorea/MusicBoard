@@ -69,10 +69,13 @@ impl Core {
                 let text = std::fs::read_to_string(&file).map_err(|_|"재생목록을 읽을 수 없습니다.")?;
                 let paths = library::parse_m3u(&text, &file);
                 let mut state = self.state.lock().map_err(|_|"보관함 잠금 오류")?;
-                let mut result = library::import_paths(&self.directory, &mut state, &paths, &mut |current,total,name|emit("import:progress",json!({"current":current,"total":total,"name":name})))?;
-                let playlist = json!({"id":uuid::Uuid::new_v4().to_string(),"name":file.file_stem().and_then(|n|n.to_str()).unwrap_or("재생목록"),"trackIds":result["trackIds"]});
-                state["playlists"].as_array_mut().ok_or("재생목록 정보가 올바르지 않습니다.")?.push(playlist);
-                library::write_state(&self.directory, &state)?;
+                let mut next = state.clone();
+                let mut result = library::import_paths(&self.directory, &mut next, &paths, &mut |current,total,name|emit("import:progress",json!({"current":current,"total":total,"name":name})))?;
+                let ordered_ids = library::ordered_track_ids(&next, &paths);
+                let playlist = json!({"id":uuid::Uuid::new_v4().to_string(),"name":file.file_stem().and_then(|n|n.to_str()).unwrap_or("재생목록"),"trackIds":ordered_ids});
+                next["playlists"].as_array_mut().ok_or("재생목록 정보가 올바르지 않습니다.")?.push(playlist);
+                library::write_state(&self.directory, &next)?;
+                *state = next;
                 result["state"] = state.clone(); Ok(result)
             },
             "playlist:export" => {
