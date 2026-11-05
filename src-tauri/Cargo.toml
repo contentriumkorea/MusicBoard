@@ -1,0 +1,47 @@
+[package]
+name = "musicboard-native"
+version = "0.2.0"
+edition = "2021"
+description = "MusicBoard native desktop core"
+license = "MIT"
+build = "build.rs"
+
+[lib]
+name = "musicboard_native"
+path = "src/lib.rs"
+
+[[bin]]
+name = "SONO"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[[bin]]
+name = "musicboard-core"
+path = "src/core_main.rs"
+
+[features]
+default = ["desktop"]
+desktop = ["dep:tauri", "dep:rfd"]
+
+[dependencies]
+tauri = { version = "2", optional = true, features = [] }
+rfd = { version = "0.15", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+hex = "0.4"
+uuid = { version = "1", features = ["v4"] }
+dirs = "6"
+base64 = "0.22"
+url = "2"
+lofty = "0.22"
+symphonia = { version = "0.5", features = ["all"] }
+tiny_http = "0.12"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls", "stream"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dev-dependencies]
+tempfile = "3"

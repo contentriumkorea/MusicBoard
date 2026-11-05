@@ -1,0 +1,27 @@
+name: PulseDeck Rust validation
+on:
+  push:
+    branches: ['codex/rust-migration']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  core:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Verify Rust native services
+        run: cargo test --manifest-path src-tauri/Cargo.toml --no-default-features
+      - name: Build headless native core
+        run: cargo build --manifest-path src-tauri/Cargo.toml --no-default-features --bin musicboard-core
