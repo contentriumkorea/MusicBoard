@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use musicboard_native::{Core,data_directory};
 use serde_json::{json,Value};
-use std::{path::PathBuf,sync::{Arc,Mutex,atomic::{AtomicBool,Ordering}},time::Duration};
+use std::{sync::{Arc,Mutex,atomic::{AtomicBool,AtomicU64,Ordering}},time::Duration};
 use tauri::{Emitter,Manager,WebviewWindow,WebviewWindowBuilder,WebviewUrl,WindowEvent};
 
 struct Desktop {
@@ -10,6 +10,9 @@ struct Desktop {
     closing:AtomicBool,
     quitting:AtomicBool,
     ready_token:Option<String>,
+    qa_mode:bool,
+    qa_started:AtomicBool,
+    close_generation:AtomicU64,
 }
 
 fn request_quit(app:&tauri::AppHandle){
@@ -34,13 +37,20 @@ async fn native(method:String,args:Value,window:WebviewWindow,desktop:tauri::Sta
         "frontend:ready"=>{
             window.show().map_err(|e|e.to_string())?;
             if is_main{if let Some(token)=&desktop.ready_token{let file=desktop.core.directory.join("mac-updates").join(token).join("health");let _=std::fs::write(file,env!("CARGO_PKG_VERSION"));}}
+            if is_main&&desktop.qa_mode&&!desktop.qa_started.swap(true,Ordering::SeqCst){let _=window.eval(include_str!("../../scripts/native-self-test.js"));}
+            return Ok(Value::Null);
+        },
+        "qa:report"=>{
+            if !is_main||!desktop.qa_mode{return Err("지원하지 않는 요청입니다.".into());}
+            let bytes=serde_json::to_vec(&args).map_err(|e|e.to_string())?;
+            std::fs::write(desktop.core.directory.join("native-result.json"),bytes).map_err(|e|e.to_string())?;
             return Ok(Value::Null);
         },
         "lifecycle:flushed"=>{
             if is_main&&desktop.quitting.load(Ordering::SeqCst){app.exit(0);}
             else if is_main&&desktop.closing.load(Ordering::SeqCst){
                 #[cfg(target_os="macos")] { let _=window.destroy();if let Some(mini)=app.get_webview_window("mini"){let _=mini.destroy();} }
-                #[cfg(not(target_os="macos"))] app.exit(0);
+                #[cfg(not(target_os="macos"))] {desktop.quitting.store(true,Ordering::SeqCst);app.exit(0);}
             }
             return Ok(Value::Null);
         },
@@ -81,7 +91,7 @@ async fn native(method:String,args:Value,window:WebviewWindow,desktop:tauri::Sta
     }).await.map_err(|e|e.to_string())?;
     if method.starts_with("update:"){
         if let Ok(state)=desktop.core.invoke("update:get",&Value::Null,&mut |_,_|{}){let _=app.emit_to("main","update:state",state);}
-        if method=="update:install"&&result.is_ok(){app.exit(0);}
+        if method=="update:install"&&result.is_ok(){desktop.quitting.store(true,Ordering::SeqCst);app.exit(0);}
     }
     result
 }
@@ -94,14 +104,22 @@ fn main(){
     let app=tauri::Builder::default()
         .setup(move|app|{
             let helper=app.path().resource_dir()?.join("resources/mac-update.sh");
-            let core=Core::new(data_directory(),helper).map_err(std::io::Error::other)?;
-            app.manage(Desktop{core,live:Mutex::new(json!({"track":null,"playing":false,"position":0,"duration":0,"volume":0.7})),closing:AtomicBool::new(false),quitting:AtomicBool::new(false),ready_token:token});
+            let directory=data_directory();
+            let qa_mode=std::env::var("LUMA_NATIVE_QA").ok().as_deref()==Some("1")&&directory.canonicalize().ok().zip(std::env::temp_dir().canonicalize().ok()).and_then(|(dir,temp)|dir.strip_prefix(temp).ok().and_then(|p|p.components().next().map(|c|c.as_os_str().to_string_lossy().starts_with("musicboard-native-")))).unwrap_or(false);
+            let core=Core::new(directory,helper).map_err(std::io::Error::other)?;
+            app.manage(Desktop{core,live:Mutex::new(json!({"track":null,"playing":false,"position":0,"duration":0,"volume":0.7})),closing:AtomicBool::new(false),quitting:AtomicBool::new(false),ready_token:token,qa_mode,qa_started:AtomicBool::new(false),close_generation:AtomicU64::new(0)});
             Ok(())
         })
         .on_window_event(|window,event|{
             if window.label()=="main"{if let WindowEvent::CloseRequested{api,..}=event{
                 api.prevent_close();let app=window.app_handle();let desktop=app.state::<Desktop>();
-                if !desktop.closing.swap(true,Ordering::SeqCst){let _=window.emit("state:flush",());}
+                if !desktop.closing.swap(true,Ordering::SeqCst){
+                    let _=window.emit("state:flush",());let handle=app.clone();let generation=desktop.close_generation.fetch_add(1,Ordering::SeqCst)+1;
+                    std::thread::spawn(move||{std::thread::sleep(Duration::from_secs(3));let desktop=handle.state::<Desktop>();if !desktop.closing.load(Ordering::SeqCst)||desktop.close_generation.load(Ordering::SeqCst)!=generation{return;}
+                        #[cfg(target_os="macos")] {if let Some(main)=handle.get_webview_window("main"){let _=main.destroy();}if let Some(mini)=handle.get_webview_window("mini"){let _=mini.destroy();}}
+                        #[cfg(not(target_os="macos"))] {handle.state::<Desktop>().quitting.store(true,Ordering::SeqCst);handle.exit(0);}
+                    });
+                }
             }}
         })
         .on_webview_event(|webview,event|{
@@ -117,13 +135,14 @@ fn main(){
         .invoke_handler(tauri::generate_handler![native])
         .build(tauri::generate_context!()).expect("PulseDeck를 시작하지 못했습니다.");
     app.run(|app,event|{
-        if let tauri::RunEvent::ExitRequested{api,..}=event{
+        if let tauri::RunEvent::ExitRequested{api,..}=&event{
             if !app.state::<Desktop>().quitting.load(Ordering::SeqCst){api.prevent_exit();request_quit(app);}
         }
         #[cfg(target_os="macos")]
         if let tauri::RunEvent::Reopen{..}=event{
             if app.get_webview_window("main").is_none(){
                 app.state::<Desktop>().closing.store(false,Ordering::SeqCst);
+                app.state::<Desktop>().close_generation.fetch_add(1,Ordering::SeqCst);
                 if let Some(config)=app.config().app.windows.iter().find(|w|w.label=="main"){if let Ok(builder)=WebviewWindowBuilder::from_config(app,config){let _=builder.build();}}
             }
         }
