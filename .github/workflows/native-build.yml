@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-14]
+        os: [windows-latest, macos-15]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -28,7 +28,7 @@ jobs:
           - os: windows-latest
             platform: windows
             executable: release/native-unpacked/SONO.exe
-          - os: macos-14
+          - os: macos-15
             platform: mac
             executable: release/mac-universal/MusicBoard.app/Contents/MacOS/SONO
     runs-on: ${{ matrix.os }}
