@@ -1,8 +1,8 @@
-# PulseDeck
+# MusicBoard
 
-![PulseDeck 커버](docs/pulsedeck-cover.svg)
+![MusicBoard 커버](docs/pulsedeck-cover.svg)
 
-내 음악 파일을 한곳에서 듣고 정리하는 로컬 플레이어입니다. Windows와 macOS에서 사용합니다. 기존 MusicBoard의 새 표시 이름이며 보관함과 설정은 그대로 이어집니다.
+내 음악 파일을 한곳에서 듣고 정리하는 로컬 플레이어입니다. Windows와 macOS에서 사용합니다.
 
 **[설치 파일 다운로드](https://github.com/contentriumkorea/MusicBoard/releases/latest)** · [Windows·Mac 업데이트 안내](docs/배포와 업데이트.md)
 
@@ -26,7 +26,7 @@ pnpm build:native
 pnpm start
 ```
 
-Windows 네이티브 실행 파일은 `release/native-unpacked/SONO.exe`, Mac 앱은 `release/mac-universal/PulseDeck.app`에 생성됩니다. 프로젝트의 `MusicBoard 실행.cmd`도 네이티브 빌드를 실행합니다. `pnpm build`는 화면 코드만 빌드하며 설치 앱 생성과 구분합니다.
+Windows 네이티브 실행 파일은 `release/native-unpacked/SONO.exe`, Mac 앱은 `release/mac-universal/`에 생성됩니다. 프로젝트의 `MusicBoard 실행.cmd`도 네이티브 빌드를 실행합니다. `pnpm build`는 화면 코드만 빌드하며 설치 앱 생성과 구분합니다.
 
 ## 사용법
 
