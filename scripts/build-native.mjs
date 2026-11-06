@@ -63,7 +63,7 @@ async function noElectron(directory) {
 }
 async function nativeStart() {
   const candidates = process.platform === 'darwin'
-    ? [path.join(output, 'mac-universal', 'PulseDeck.app', 'Contents', 'MacOS', 'SONO'), path.join(native, 'universal-apple-darwin', 'release', 'bundle', 'macos', 'PulseDeck.app', 'Contents', 'MacOS', 'SONO'), path.join(native, 'release', 'bundle', 'macos', 'PulseDeck.app', 'Contents', 'MacOS', 'SONO')]
+    ? [path.join(output, 'mac-universal', 'MusicBoard.app', 'Contents', 'MacOS', 'SONO'), path.join(native, 'universal-apple-darwin', 'release', 'bundle', 'macos', 'MusicBoard.app', 'Contents', 'MacOS', 'SONO'), path.join(native, 'release', 'bundle', 'macos', 'MusicBoard.app', 'Contents', 'MacOS', 'SONO')]
     : [path.join(output, 'native-unpacked', 'SONO.exe'), path.join(native, 'release', 'SONO.exe')];
   const executable = (await Promise.all(candidates.map(async file => await exists(file) ? file : null))).find(Boolean);
   assert.ok(executable, 'Build the native desktop first with pnpm build:native'); await run(executable);
@@ -142,7 +142,7 @@ async function packageWindows(pkg) {
 }
 
 async function packageMac(pkg) {
-  const source = path.join(native, 'universal-apple-darwin', 'release', 'bundle', 'macos', 'PulseDeck.app');
+  const source = path.join(native, 'universal-apple-darwin', 'release', 'bundle', 'macos', 'MusicBoard.app');
   const executable = path.join(source, 'Contents', 'MacOS', 'SONO');
   const architectures = (await capture('/usr/bin/lipo', ['-archs', executable])).split(/\s+/).sort();
   assert.deepEqual(architectures, ['arm64', 'x86_64'], 'Production Mac bundle must be universal');
@@ -152,8 +152,8 @@ async function packageMac(pkg) {
   }
   await noElectron(source); await run('/usr/bin/codesign', ['--verify', '--deep', '--strict', source]);
   const stage = path.join(output, 'mac-universal'); await resetDirectory(stage);
-  const bundle = path.join(stage, 'PulseDeck.app'); await run('/usr/bin/ditto', [source, bundle]);
-  if (args.has('--dir')) { console.log('Native universal Mac application: release/mac-universal/PulseDeck.app'); return; }
+  const bundle = path.join(stage, 'MusicBoard.app'); await run('/usr/bin/ditto', [source, bundle]);
+  if (args.has('--dir')) { console.log('Native universal Mac application: release/mac-universal/MusicBoard.app'); return; }
   const work = path.join(output, 'native-packaging'); await resetDirectory(work);
   for (const name of ['MusicBoard', 'SONO']) {
     const compatible = path.join(work, `${name}.app`); await run('/usr/bin/ditto', [bundle, compatible]);
@@ -163,9 +163,9 @@ async function packageMac(pkg) {
     await run('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', compatible, archive]);
   }
   const dmgRoot = path.join(work, 'dmg'); await mkdir(dmgRoot);
-  await run('/usr/bin/ditto', [bundle, path.join(dmgRoot, 'PulseDeck.app')]); await symlink('/Applications', path.join(dmgRoot, 'Applications'));
+  await run('/usr/bin/ditto', [bundle, path.join(dmgRoot, 'MusicBoard.app')]); await symlink('/Applications', path.join(dmgRoot, 'Applications'));
   const dmg = path.join(output, `MusicBoard-${pkg.version}-mac-universal.dmg`);
-  await run('/usr/bin/hdiutil', ['create', '-volname', 'PulseDeck', '-srcfolder', dmgRoot, '-ov', '-format', 'UDZO', dmg]);
+  await run('/usr/bin/hdiutil', ['create', '-volname', 'MusicBoard', '-srcfolder', dmgRoot, '-ov', '-format', 'UDZO', dmg]);
   await copyFile(dmg, path.join(output, `SONO-${pkg.version}-mac-universal.dmg`));
   const name = `MusicBoard-${pkg.version}-mac-universal.zip`, archive = path.join(output, name);
   const digest = await hash(archive, 'sha512', 'base64'), size = (await stat(archive)).size;

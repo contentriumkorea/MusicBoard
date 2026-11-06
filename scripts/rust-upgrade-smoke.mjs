@@ -15,7 +15,8 @@ import { coreClient, fixture, cleanFixture } from './rust-core-smoke.mjs';
 assert.equal(process.platform, 'darwin', 'Run this verification on macOS with a built native update ZIP');
 assert.ok(process.env.MUSICBOARD_NATIVE_EXECUTABLE, 'Set MUSICBOARD_NATIVE_EXECUTABLE to the newly built signed Contents/MacOS/SONO');
 const exec = promisify(execFile), releases = 'https://github.com/contentriumkorea/MusicBoard/releases';
-const oldVersion = '0.1.11', version = '0.2.0', maxArchive = 2 * 1024 ** 3;
+const {version} = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+const oldVersion = '0.1.11', maxArchive = 2 * 1024 ** 3;
 const nativeExecutable = await realpath(process.env.MUSICBOARD_NATIVE_EXECUTABLE);
 const archive = await realpath(path.resolve(`release/MusicBoard-${version}-mac-universal.zip`));
 const f = await fixture(), target = path.join(f.dir, 'Applications', 'MusicBoard.app');
@@ -190,7 +191,7 @@ try {
   assert.equal(initial.settings.volume, .43); assert.equal(initial.settings.fadeOut, 1.2);
   for (const check of result.checks) console.log('PASS migrated ' + check);
   assert.deepEqual(await Promise.all(f.files.map(sha256)), audioHashes, 'Migration and native UI must preserve every original audio byte');
-  console.log('PASS genuine published Electron 0.1.11 -> Rust 0.2.0: one update click, real helper replacement/restart/health, valid native signature and pre-edit library/settings preservation');
+  console.log(`PASS published Electron ${oldVersion} -> Rust ${version}: one update click, replacement, restart and data preservation`);
 
   await stopOwnedProcesses();
   core = coreClient(installedExecutable, f.data);

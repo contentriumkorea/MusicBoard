@@ -11,6 +11,6 @@ async function bootstrap(){
 }
 void bootstrap().catch(()=>{
   const root=document.getElementById('root');
-  if(root&&!root.hasChildNodes())root.textContent='PulseDeck를 시작하지 못했습니다. 앱을 다시 실행해주세요.';
-  console.error('PulseDeck initialization failed');
+  if(root&&!root.hasChildNodes())root.textContent='MusicBoard를 시작하지 못했습니다. 앱을 다시 실행해주세요.';
+  console.error('MusicBoard initialization failed');
 });

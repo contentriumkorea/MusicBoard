@@ -68,7 +68,7 @@ async fn native(method:String,args:Value,window:WebviewWindow,desktop:tauri::Sta
     }
     if method=="mini:show"{
         if let Some(mini)=app.get_webview_window("mini"){let _=mini.show();return Ok(Value::Null);}
-        WebviewWindowBuilder::new(&app,"mini",WebviewUrl::App("index.html?mini=1".into())).title("PulseDeck").inner_size(440.,150.).resizable(false).decorations(false).always_on_top(true).visible(false).build().map_err(|e|e.to_string())?;
+        WebviewWindowBuilder::new(&app,"mini",WebviewUrl::App("index.html?mini=1".into())).title("MusicBoard").inner_size(440.,150.).resizable(false).decorations(false).always_on_top(true).visible(false).build().map_err(|e|e.to_string())?;
         return Ok(Value::Null);
     }
     let core=desktop.core.clone();
@@ -133,7 +133,7 @@ fn main(){
             }
         })
         .invoke_handler(tauri::generate_handler![native])
-        .build(tauri::generate_context!()).expect("PulseDeck를 시작하지 못했습니다.");
+        .build(tauri::generate_context!()).expect("MusicBoard를 시작하지 못했습니다.");
     app.run(|app,event|{
         if let tauri::RunEvent::ExitRequested{api,..}=&event{
             if !app.state::<Desktop>().quitting.load(Ordering::SeqCst){api.prevent_exit();request_quit(app);}

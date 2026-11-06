@@ -26,7 +26,7 @@ export async function fixture(){
 export async function cleanFixture(dir){const actual=path.resolve(dir),base=path.resolve(await realpath(tmpdir()));assert.ok(actual.startsWith(base+path.sep)&&path.basename(actual).startsWith('musicboard-native-'));await rm(actual,{recursive:true,force:true});}
 
 async function main(){
-  const f=await fixture(),exe=process.env.MUSICBOARD_CORE_EXECUTABLE||path.resolve(process.platform==='win32'?'release/native-unpacked/SONO.exe':'release/mac-universal/PulseDeck.app/Contents/MacOS/SONO');let core=coreClient(exe,f.data);
+  const f=await fixture(),exe=process.env.MUSICBOARD_CORE_EXECUTABLE||path.resolve(process.platform==='win32'?'release/native-unpacked/SONO.exe':'release/mac-universal/MusicBoard.app/Contents/MacOS/SONO');let core=coreClient(exe,f.data);
   try{
     const imported=await core.call('music:paths',{paths:[f.folder]});assert.equal(imported.added,3);assert.equal(imported.state.tracks.length,3);assert.deepEqual(imported.folderRoots,[f.folder]);assert.equal((await core.call('music:paths',{paths:f.files})).added,0);
     const a=imported.state.tracks.find(t=>t.path===f.files[0]);assert.ok(a);assert.ok(Math.abs(a.duration-12)<.01);assert.equal(a.id,createHash('sha256').update(process.platform==='win32'?f.files[0].toLowerCase():f.files[0]).digest('hex'));
@@ -38,7 +38,8 @@ async function main(){
     const wave=await core.call('waveform:get',{id:a.id});assert.equal(wave.peaks.length,960);assert.ok(Math.max(...wave.peaks.slice(10,230))<.001);assert.ok(Math.max(...wave.peaks.slice(260,450))>.18);assert.ok(Math.max(...wave.peaks.slice(500,700))>.75);assert.ok(Math.max(...wave.peaks.slice(750,940))<.001);
     const shell=await core.call('shell:info'),url=`${shell.mediaBase}/audio/${a.id}`;let response=await fetch(url,{headers:{Range:'bytes=44-75'}});assert.equal(response.status,206);assert.deepEqual(Buffer.from(await response.arrayBuffer()),f.bytes.subarray(44,76));assert.equal((await fetch(url,{headers:{Range:'bytes=99999999-'}})).status,416);assert.equal((await fetch(`${shell.mediaBase}/audio/${'b'.repeat(64)}`)).status,404);response=await fetch(url,{method:'HEAD'});assert.equal(Number(response.headers.get('content-length')),f.bytes.length);
     console.log('PASS Rust PCM opposite-channel waveform, silent/quiet/loud regions and actual streaming Range/HEAD protection');
-    const update=await core.call('update:get');assert.equal(update.version,'0.2.0');assert.equal(update.mode,'automatic');assert.equal(update.releasesUrl,'https://github.com/contentriumkorea/MusicBoard/releases');
+    const {version} = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+    const update=await core.call('update:get');assert.equal(update.version,version);assert.equal(update.mode,'automatic');assert.equal(update.releasesUrl,'https://github.com/contentriumkorea/MusicBoard/releases');
     await core.close();core=coreClient(exe,f.data);const restarted=(await core.call('state:get')).state;assert.deepEqual(restarted.playlists,state.playlists);assert.equal(restarted.settings.fadeOut,1.2);assert.deepEqual((await core.call('waveform:get',{id:a.id})).peaks,wave.peaks);assert.deepEqual(await readFile(f.files[0]),f.bytes);
     await core.call('music:remove',{ids:[a.id]});const removed=(await core.call('state:get')).state;assert.equal(removed.tracks.length,2);assert.equal(removed.playlists[0].trackIds.length,0);assert.deepEqual(await readFile(f.files[0]),f.bytes);
     console.log('PASS Rust update channel, restart/cache persistence and selected deletion without changing source audio');

@@ -1,4 +1,4 @@
-// Real NSIS 0.1.11 -> native 0.2.0 upgrade in a disposable GitHub Windows runner.
+// Upgrade from the published 0.1.11 NSIS installer in a disposable GitHub runner.
 // Refuse a workstation or an existing registration rather than redirecting an
 // installed user's app through the compatibility GUID during this test.
 import assert from 'node:assert/strict';
@@ -15,9 +15,10 @@ assert.equal(process.platform, 'win32', 'Run this verification only in Windows C
 assert.equal(process.env.GITHUB_ACTIONS, 'true', 'This installer test requires an isolated GitHub Actions runner');
 assert.ok(process.env.MUSICBOARD_NATIVE_EXECUTABLE, 'Set MUSICBOARD_NATIVE_EXECUTABLE to the newly built native SONO.exe');
 const nativeExecutable = await realpath(process.env.MUSICBOARD_NATIVE_EXECUTABLE);
-const newInstaller = await realpath(path.resolve('release/MusicBoard-0.2.0-windows-x64-setup.exe'));
+const {version} = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+const newInstaller = await realpath(path.resolve(`release/MusicBoard-${version}-windows-x64-setup.exe`));
 const releases = 'https://github.com/contentriumkorea/MusicBoard/releases';
-const oldVersion = '0.1.11', version = '0.2.0', maxArchive = 2 * 1024 ** 3;
+const oldVersion = '0.1.11', maxArchive = 2 * 1024 ** 3;
 const f = await fixture(), installDir = path.join(f.dir, 'Applications', 'MusicBoard');
 const executable = path.join(installDir, 'SONO.exe'), resultFile = path.join(f.data, 'native-result.json');
 const env = { ...f.env }; delete env.ELECTRON_RUN_AS_NODE; delete env.LUMA_DEV_URL;
@@ -139,7 +140,7 @@ try {
   core = coreClient(executable, f.data); const update = await core.call('update:get');
   assert.equal(update.version, version); assert.equal(update.mode, 'automatic'); assert.equal(update.releasesUrl, releases);
   await core.close(); core = undefined;
-  console.log('PASS real published Windows NSIS 0.1.11 -> native 0.2.0: same GUID/install location, controlled native UI, pre-edit data preservation, source bytes and automatic update channel');
+  console.log(`PASS published Windows NSIS ${oldVersion} -> native ${version}: same install identity and location, native UI and data preservation`);
 } finally {
   if (core) await core.close().catch(() => {});
   await stopOwnedProcesses();

@@ -25,7 +25,7 @@ function regions(info,name){
 }
 
 const f=await fixture();
-const executable=process.env.MUSICBOARD_CORE_EXECUTABLE||path.resolve(process.platform==='win32'?'release/native-unpacked/SONO.exe':'release/mac-universal/PulseDeck.app/Contents/MacOS/SONO');
+const executable=process.env.MUSICBOARD_CORE_EXECUTABLE||path.resolve(process.platform==='win32'?'release/native-unpacked/SONO.exe':'release/mac-universal/MusicBoard.app/Contents/MacOS/SONO');
 const aac=path.join(f.folder,'AAC 내용의 MP3.mp3'),flac=path.join(f.folder,'stereo FLAC.flac'),long=path.join(f.folder,'긴 MP3.mp3');
 let core;
 const diagnostics=[];

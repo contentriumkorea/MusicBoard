@@ -273,7 +273,7 @@ fn validate_bundle(bundle: &Path, version: &str) -> Result<(), String> {
     let plist = bundle.join("Contents/Info.plist");
     for (key, expected) in [("CFBundleIdentifier", "local.luma.music"), ("CFBundleShortVersionString", version), ("CFBundleExecutable", "SONO")] {
         let output = Command::new("/usr/bin/plutil").args(["-extract", key, "raw", "-o", "-"]).arg(&plist).stdin(Stdio::null()).stderr(Stdio::null()).output().map_err(|_| "앱 정보를 읽지 못했습니다.".to_string())?;
-        if !output.status.success() || String::from_utf8_lossy(&output.stdout).trim() != expected { return Err("PulseDeck 업데이트 앱을 확인하지 못했습니다.".into()); }
+        if !output.status.success() || String::from_utf8_lossy(&output.stdout).trim() != expected { return Err("MusicBoard 업데이트 앱을 확인하지 못했습니다.".into()); }
     }
     let executable = bundle.join("Contents/MacOS/SONO");
     if !executable.is_file() { return Err("업데이트 앱 실행 파일이 없습니다.".into()); }
@@ -294,16 +294,16 @@ fn prepare_mac_install(staged: &Staged, release: &Release, helper_source: &Path)
     }
     let target = executable.parent().and_then(Path::parent).and_then(Path::parent).ok_or("현재 앱 경로를 확인하지 못했습니다.")?;
     if target.extension().and_then(|s| s.to_str()) != Some("app") || target.starts_with("/Volumes") || target.components().any(|part| part.as_os_str() == "AppTranslocation") {
-        return Err("PulseDeck을 응용프로그램 폴더로 옮긴 뒤 업데이트해주세요.".into());
+        return Err("MusicBoard을 응용프로그램 폴더로 옮긴 뒤 업데이트해주세요.".into());
     }
     if fs::metadata(target).map_err(|_| "현재 앱을 확인하지 못했습니다.".to_string())?.permissions().readonly() {
-        return Err("앱 폴더에 쓰기 권한이 없습니다. 사용자 응용프로그램 폴더로 PulseDeck을 옮겨주세요.".into());
+        return Err("앱 폴더에 쓰기 권한이 없습니다. 사용자 응용프로그램 폴더로 MusicBoard을 옮겨주세요.".into());
     }
     let bundle = staged.bundle.as_ref().ok_or("다운로드한 앱이 없습니다.")?;
     validate_bundle(bundle, &release.version)?;
     let mut candidate_name = target.as_os_str().to_os_string(); candidate_name.push(format!(".sono-update-{}.app", staged.token));
     let candidate = PathBuf::from(candidate_name);
-    fs::create_dir(&candidate).map_err(|_| "앱 폴더에 쓰기 권한이 없습니다. 사용자 응용프로그램 폴더로 PulseDeck을 옮겨주세요.".to_string())?;
+    fs::create_dir(&candidate).map_err(|_| "앱 폴더에 쓰기 권한이 없습니다. 사용자 응용프로그램 폴더로 MusicBoard을 옮겨주세요.".to_string())?;
     let result: Result<(), String> = (|| {
         run("/usr/bin/ditto", &[bundle.as_os_str(), candidate.as_os_str()])?;
         validate_bundle(&candidate, &release.version)?;

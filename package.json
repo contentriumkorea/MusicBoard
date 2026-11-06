@@ -1,10 +1,10 @@
 {
   "name": "sono",
   "productName": "MusicBoard",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
-  "description": "PulseDeck: a local music player for macOS and Windows",
+  "description": "MusicBoard: a local music player for macOS and Windows",
   "author": {
     "name": "Contentrium",
     "url": "https://github.com/contentriumkorea"

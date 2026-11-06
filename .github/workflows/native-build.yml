@@ -30,7 +30,7 @@ jobs:
             executable: release/native-unpacked/SONO.exe
           - os: macos-14
             platform: mac
-            executable: release/mac-universal/PulseDeck.app/Contents/MacOS/SONO
+            executable: release/mac-universal/MusicBoard.app/Contents/MacOS/SONO
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
@@ -96,4 +96,4 @@ jobs:
           name: native-desktop-${{ matrix.platform }}
           path: |
             release/native-unpacked/SONO.exe
-            release/mac-universal/PulseDeck.app/Contents/MacOS/SONO
+            release/mac-universal/MusicBoard.app/Contents/MacOS/SONO

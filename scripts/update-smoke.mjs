@@ -23,18 +23,18 @@ try{
     await application.evaluate(async({app})=>{
       const {createRequire}=process.getBuiltinModule('node:module');const require=createRequire(app.getAppPath()+'/package.json');
       const {autoUpdater}=require('electron-updater');
-      autoUpdater.checkForUpdates=async()=>{await new Promise(r=>setTimeout(r,200));autoUpdater.emit('update-available',{version:'0.2.0'});return null;};
+      autoUpdater.checkForUpdates=async()=>{await new Promise(r=>setTimeout(r,200));autoUpdater.emit('update-available',{version:'99.0.0'});return null;};
       autoUpdater.quitAndInstall=()=>{globalThis.sonoInstalled=true;};
-      autoUpdater.downloadUpdate=async()=>{autoUpdater.emit('download-progress',{percent:37});await new Promise(r=>setTimeout(r,400));autoUpdater.emit('update-downloaded',{version:'0.2.0'});return [];};
+      autoUpdater.downloadUpdate=async()=>{autoUpdater.emit('download-progress',{percent:37});await new Promise(r=>setTimeout(r,400));autoUpdater.emit('update-downloaded',{version:'99.0.0'});return [];};
     });
   }else{
     await application.evaluate(({net,shell})=>{
-      net.fetch=async url=>{if(url!=='https://api.github.com/repos/contentriumkorea/MusicBoard/releases/latest')throw Error('Unexpected update source');await new Promise(r=>setTimeout(r,200));return new Response(JSON.stringify({tag_name:'v0.2.0',draft:false,prerelease:false,html_url:'https://github.com/contentriumkorea/MusicBoard/releases/tag/v0.2.0',assets:[{name:'MusicBoard-0.2.0-windows-x64-setup.exe'},{name:'MusicBoard-0.2.0-mac-universal.dmg'}]}),{status:200});};
+      net.fetch=async url=>{if(url!=='https://api.github.com/repos/contentriumkorea/MusicBoard/releases/latest')throw Error('Unexpected update source');await new Promise(r=>setTimeout(r,200));return new Response(JSON.stringify({tag_name:'v99.0.0',draft:false,prerelease:false,html_url:'https://github.com/contentriumkorea/MusicBoard/releases/tag/v99.0.0',assets:[{name:'MusicBoard-99.0.0-windows-x64-setup.exe'},{name:'MusicBoard-99.0.0-mac-universal.dmg'}]}),{status:200});};
       shell.openExternal=async url=>{globalThis.sonoOpenedRelease=url;};
     });
   }
   await page.getByRole('button',{name:'업데이트',exact:true}).click();
-  await page.getByRole('heading',{name:'PulseDeck 업데이트'}).waitFor();
+  await page.getByRole('heading',{name:'MusicBoard 업데이트'}).waitFor();
   const version=await application.evaluate(({app})=>app.getVersion());
   assert.ok((await page.locator('.update-version').first().textContent()).includes(`v${version}`));
   await page.getByRole('button',{name:'업데이트 확인 중'}).waitFor();

@@ -1,7 +1,7 @@
-name: PulseDeck Rust validation
+name: MusicBoard Rust validation
 on:
   push:
-    branches: ['codex/rust-migration']
+    branches: ['codex/rust-migration', 'codex/musicboard-branding']
   workflow_dispatch:
 permissions:
   contents: read

@@ -1,1 +1,1 @@
-{"identifier":"desktop","description":"Local PulseDeck windows may subscribe to native player events.","windows":["main","mini"],"permissions":["core:event:default"]}
+{"identifier":"desktop","description":"Local MusicBoard windows may subscribe to native player events.","windows":["main","mini"],"permissions":["core:event:default"]}

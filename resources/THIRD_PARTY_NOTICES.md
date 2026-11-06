@@ -1,4 +1,4 @@
-PulseDeck uses Mediabunny 1.61.0 by Vanilagy for incremental media decoding.
+MusicBoard uses Mediabunny 1.61.0 by Vanilagy for incremental media decoding.
 
 Mediabunny is licensed under the Mozilla Public License 2.0. The license is included in licenses/mediabunny-MPL-2.0.txt.
 
