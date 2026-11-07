@@ -1,4 +1,4 @@
-// Genuine published Electron 0.1.11 -> native Rust migration. Only release HTTP
+// Genuine published Electron 0.1.10 -> native Rust migration. Only release HTTP
 // responses are replaced; the old updater, helper and app are left unchanged.
 import { _electron as electron } from '@playwright/test';
 import { access, mkdir, readFile, readdir, realpath, stat } from 'node:fs/promises';
@@ -16,8 +16,9 @@ assert.equal(process.platform, 'darwin', 'Run this verification on macOS with a 
 assert.ok(process.env.MUSICBOARD_NATIVE_EXECUTABLE, 'Set MUSICBOARD_NATIVE_EXECUTABLE to the newly built signed Contents/MacOS/SONO');
 const exec = promisify(execFile), releases = 'https://github.com/contentriumkorea/MusicBoard/releases';
 const {version} = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-const oldVersion = '0.1.11', maxArchive = 2 * 1024 ** 3;
+const oldVersion = '0.1.10', maxArchive = 2 * 1024 ** 3;
 const nativeExecutable = await realpath(process.env.MUSICBOARD_NATIVE_EXECUTABLE);
+const legacyReleases = 'https://github.com/contentriumkorea/SONO/releases';
 const archive = await realpath(path.resolve(`release/MusicBoard-${version}-mac-universal.zip`));
 const f = await fixture(), target = path.join(f.dir, 'Applications', 'MusicBoard.app');
 const installedExecutable = path.join(target, 'Contents', 'MacOS', 'SONO');
@@ -127,9 +128,9 @@ try {
 
   const archiveSize = (await stat(archive)).size; assert.ok(archiveSize > 0 && archiveSize <= maxArchive);
   const archiveHash = await sha256(archive), name = path.basename(archive);
-  const release = { tag_name: `v${version}`, draft: false, prerelease: false, html_url: `${releases}/tag/v${version}`,
+  const release = { tag_name: `v${version}`, draft: false, prerelease: false, html_url: `${legacyReleases}/tag/v${version}`,
     assets: [{ name: `MusicBoard-${version}-mac-universal.dmg` },
-      { name, browser_download_url: `${releases}/download/v${version}/${name}`, size: archiveSize, digest: `sha256:${archiveHash}` }] };
+      { name, browser_download_url: `${legacyReleases}/download/v${version}/${name}`, size: archiveSize, digest: `sha256:${archiveHash}` }] };
   const env = { ...f.env }; delete env.ELECTRON_RUN_AS_NODE; delete env.LUMA_DEV_URL;
   application = await electron.launch({ executablePath: installedExecutable, args: [], env, timeout: 60000 });
   page = await application.firstWindow(); page.setDefaultTimeout(90000);
@@ -137,14 +138,14 @@ try {
   await page.getByRole('button', { name: '기존 표시 이름', exact: true }).waitFor();
   assert.equal(await application.evaluate(({ app }) => app.getVersion()), oldVersion);
   const oldUpdater = await page.evaluate(async () => window.luma.getUpdateState());
-  assert.equal(oldUpdater.mode, 'automatic'); assert.equal(oldUpdater.releasesUrl, releases);
+  assert.equal(oldUpdater.mode, 'automatic'); assert.equal(oldUpdater.releasesUrl, legacyReleases);
   const legacyLoaded = await page.evaluate(async () => (await window.luma.getState()).state);
   assert.equal(legacyLoaded.tracks.find(track => track.id === b.id).displayName, '기존 표시 이름');
   assert.deepEqual(legacyLoaded.playlists, before.playlists);
   await application.evaluate(({ net }, { release, archive }) => {
     const original = net.fetch.bind(net), fs = process.getBuiltinModule('fs'), { Readable } = process.getBuiltinModule('stream');
     net.fetch = async (url, init) => {
-      if (url === 'https://api.github.com/repos/contentriumkorea/MusicBoard/releases/latest') return new Response(JSON.stringify(release));
+      if (url === 'https://api.github.com/repos/contentriumkorea/SONO/releases/latest') return new Response(JSON.stringify(release));
       if (url === release.assets[1].browser_download_url) return new Response(Readable.toWeb(fs.createReadStream(archive)));
       return original(url, init);
     };
